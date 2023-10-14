@@ -1,0 +1,10 @@
+[package]
+name = "tcp-proxy"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.0.0", features = ["full", "tracing"]}
+tokio-util = { version = "0.7.0", features = ["full"]}
+futures = { version = "0.3.0", features = ["thread-pool"]}
+argparse = { version = "0.2.2" }

@@ -1,0 +1,74 @@
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-13, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Build
+      run: cargo build --release
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: tcp-proxy-${{ matrix.os }}
+        path: |
+          ./target/release/tcp-proxy
+          ./target/release/tcp-proxy.exe
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Download All Artifacts
+      uses: actions/download-artifact@v4
+      with: 
+        path: tmp
+        pattern: tcp-proxy*
+
+    - name: Display Files
+      run: tree .
+
+    - name: Copy Artifacts To Release
+      run: |
+        mkdir release
+        mv tmp/tcp-proxy-ubuntu-latest/* release/tcp-proxy-ubuntu
+        mv tmp/tcp-proxy-macos-13/* release/tcp-proxy-macos-x86
+        mv tmp/tcp-proxy-macos-latest/* release/tcp-proxy-macos-arm64
+        mv tmp/tcp-proxy-windows-latest/* release/tcp-proxy-windows.exe
+
+    - name: Add Executable Permission
+      run: | 
+        cd release
+        chmod u+x ./tcp-proxy*
+
+    - name: Compress Artifacts
+      run: |
+        cd release
+        md5sum tcp-proxy* > md5sum.txt
+        zip tcp-proxy-ubuntu.zip tcp-proxy-ubuntu
+        zip tcp-proxy-macos-x86.zip tcp-proxy-macos-x86
+        zip tcp-proxy-macos-arm64.zip tcp-proxy-macos-arm64
+        zip tcp-proxy-windows.zip tcp-proxy-windows.exe
+
+    - name: Display Files
+      run: tree .
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: ./release/*
+
